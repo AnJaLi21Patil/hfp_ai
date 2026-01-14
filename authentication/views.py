@@ -4,7 +4,10 @@ from django.shortcuts import render
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from authentication.models import User
 from .serializers import RegisterSerializer, LoginSerializer
+
 
 def generate_auth_key(user):
     refresh = RefreshToken.for_user(user)
@@ -20,6 +23,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.conf import settings
+from django.utils.encoding import force_str  # for decode later
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
@@ -31,7 +35,7 @@ class RegisterView(generics.CreateAPIView):
         user = serializer.save()
 
         # 🔹 Generate verification link
-        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        uid = urlsafe_base64_encode(force_bytes(user.pk)).decode()  # 🔹 convert to string
         token = default_token_generator.make_token(user)
         verify_link = f"http://127.0.0.1:8000/api/verify-email/{uid}/{token}/"
 
@@ -71,13 +75,15 @@ class LoginView(generics.GenericAPIView):
 
 
 from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_str
+
 
 class VerifyEmailView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, uid, token):
         try:
-            user_id = urlsafe_base64_decode(uid).decode()
+            user_id = force_str(urlsafe_base64_decode(uid))
             user = User.objects.get(pk=user_id)
 
             if default_token_generator.check_token(user, token):
