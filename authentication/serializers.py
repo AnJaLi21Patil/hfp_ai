@@ -30,5 +30,12 @@ class LoginSerializer(serializers.Serializer):
         )
         if not user:
             raise serializers.ValidationError("Invalid email or password")
+
+        # 🔹 BLOCK login if email not verified
+        if not user.is_email_verified:
+            raise serializers.ValidationError(
+                "Please verify your email before logging in"
+            )
+
         data['user'] = user
         return data
