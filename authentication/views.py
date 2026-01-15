@@ -7,6 +7,15 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from authentication.models import User
 from .serializers import RegisterSerializer, LoginSerializer
+from django.core.mail import send_mail
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.conf import settings
+from django.utils.encoding import force_str  # for decode later
+
+from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_str
 
 
 def generate_auth_key(user):
@@ -17,13 +26,7 @@ def generate_auth_key(user):
     }
 
 
-# 
-from django.core.mail import send_mail
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes
-from django.conf import settings
-from django.utils.encoding import force_str  # for decode later
+
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
@@ -35,7 +38,7 @@ class RegisterView(generics.CreateAPIView):
         user = serializer.save()
 
         # 🔹 Generate verification link
-        uid = urlsafe_base64_encode(force_bytes(user.pk)).decode()  # 🔹 convert to string
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
         verify_link = f"http://127.0.0.1:8000/api/verify-email/{uid}/{token}/"
 
@@ -72,10 +75,6 @@ class LoginView(generics.GenericAPIView):
             "message": "Login successful",
             **token
         }, status=status.HTTP_200_OK)
-
-
-from django.utils.http import urlsafe_base64_decode
-from django.utils.encoding import force_str
 
 
 class VerifyEmailView(generics.GenericAPIView):
